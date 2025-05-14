@@ -2,12 +2,15 @@ import pandas as pd
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+# from langchain_openrouter
 from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import JsonOutputParser
 
 import json
 
 from dotenv import load_dotenv
 
+from core.llmrouter import LLMRouter
 from core.models import GraphState, ChecklistItem, Recommendation
 from utils import prompts
 
@@ -22,7 +25,9 @@ def keyword_analyzer(state: GraphState) -> GraphState:
     """
 
     # Let just use LLM from OpenAI for testing.
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    # llm_type='openai'
+    # llm = ChatOpenAI(model="gpt-4", temperature=0)
+    llm,llm_type = LLMRouter(provider='openrouter',model_name='llama4')
     
     keywords_text = "\n".join([f"- {kw['Keyword']} (Volume: {kw['Volume']}, KD: {kw['KD']})" for kw in state['keywords']])
     data = prompts.keyword_output
@@ -38,15 +43,19 @@ def keyword_analyzer(state: GraphState) -> GraphState:
     )
     
     response = llm.invoke(formatted_prompt)
+    print(response)
     
     try:
-        keyword_analysis = json.loads(response.content)
+        if llm_type=='openai':
+            keyword_analysis = json.loads(response.content)
+        else:
+            parser = JsonOutputParser(pydantic_schema=json.dumps(data))
+            keyword_analysis = json.loads(response)
         print("KeyWord Analysis: \n",keyword_analysis)
         return {**state, "keyword_analysis": keyword_analysis}
     except Exception as e:
         print(f"Error parsing keyword analysis: {e}")
         return {**state, "keyword_analysis": {"error": str(e), "raw_response": response.content}}
-    
 
 
 if __name__=='__main__':

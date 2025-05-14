@@ -59,11 +59,13 @@ class MultiSelectCustomLLM(LLM):
             'model': self.getLLM(), #self.model_uri,
             'messages': [
                 {'role': 'user', 'content': prompt}
-            ]
+            ],
+            'temperature': 0.0,
+            'response_format': { 'type': 'json_object' } 
         }
         # Output example: {'choices': [{'message': {'role': 'assistant', 'content': "I am OpenAI's artificial intelligence model called GPT-3."}}], 'model': 'gpt-4-32k-0613', 'usage': {'prompt_tokens': 11, 'completion_tokens': 14, 'total_tokens': 25}, 'id': 'gen-e4MSuTT1v2wvrYFNFunhumsIawaI'}
         response = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, data=json.dumps(data))
-        logging.log(response.json())
+        logging.debug(response.json())
         if 'error' in response.json():
             raise Exception(f"LLM Connection Error {response.json()['error']['code']}: {response.json()['error']['message']}")
 
