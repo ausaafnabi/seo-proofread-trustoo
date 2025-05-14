@@ -83,7 +83,7 @@ def structure_analyzer(state: GraphState) -> GraphState:
     
     formatted_prompt = prompt.format_messages(
         content_type=state['content_type'],
-        content=state['content'][:4000],  # Truncate content to avoid token limits
+        content=state['content'],  # Truncate content to avoid token limits
         data=data
     )
     
@@ -121,7 +121,7 @@ def checklist_evaluator(state: GraphState) -> GraphState:
     
     formatted_prompt = prompt.format_messages(
         content_type=state['content_type'],
-        content=state['content'][:3000],  # Truncate content to avoid token limits
+        content=state['content'],  # Truncate content to avoid token limits
         keyword_analysis=json.dumps(state['keyword_analysis']),
         structure_analysis=json.dumps(state['structure_analysis']),
         checklist=checklist_text,

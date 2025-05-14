@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional,Sequence
 import requests
 import json
 import os
@@ -7,6 +7,8 @@ import logging
 
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
+from langchain.tools import BaseTool
+from langchain_community.llms.utils import enforce_stop_tokens
 
 load_dotenv("../.env", override=True)
 
@@ -38,6 +40,8 @@ class MultiSelectCustomLLM(LLM):
                        'gemini2_5':'google/gemini-2.5-pro-exp-03-25',
                        'llama4':'meta-llama/llama-4-scout:free'}
         return LLMmap.get(self.model,'google/gemini-2.0-flash-exp:free')
+    
+
 
     def _call(
         self,
@@ -66,8 +70,11 @@ class MultiSelectCustomLLM(LLM):
         # Output example: {'choices': [{'message': {'role': 'assistant', 'content': "I am OpenAI's artificial intelligence model called GPT-3."}}], 'model': 'gpt-4-32k-0613', 'usage': {'prompt_tokens': 11, 'completion_tokens': 14, 'total_tokens': 25}, 'id': 'gen-e4MSuTT1v2wvrYFNFunhumsIawaI'}
         response = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, data=json.dumps(data))
         logging.debug(response.json())
+        
         if 'error' in response.json():
+            print(response.json())
             raise Exception(f"LLM Connection Error {response.json()['error']['code']}: {response.json()['error']['message']}")
+        
 
         output = response.json()['choices'][0]['message']['content']
 
