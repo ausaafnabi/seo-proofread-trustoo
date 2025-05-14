@@ -3,7 +3,6 @@ import docx
 import pandas as pd
 
 def read_docx(file_path: str) -> str:
-    """Read the content of a .docx file."""
     doc = docx.Document(file_path)
     full_text = []
     for para in doc.paragraphs:
@@ -11,8 +10,15 @@ def read_docx(file_path: str) -> str:
     return '\n'.join(full_text)
 
 def read_excel(file_path: str) -> pd.DataFrame:
-    """Read the content of an Excel file."""
     return pd.read_excel(file_path)
+
+def read_txt(file) -> str:
+    return file.getvalue().decode('utf-8')
+
+def read_markdown(file) -> str:
+    return file.getvalue().decode('utf-8')
+
+
 
 def detect_page_type(content: str) -> str:
     """
