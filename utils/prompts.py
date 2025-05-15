@@ -79,7 +79,7 @@ structure_prompt= """
         ```
         {data}
         ```
-        Important only return the schema response as stringified json!!
+        Important only return the schema response as stringified json (never do double-encoding of JSON)!!
         """
 
 checklist_data= """
