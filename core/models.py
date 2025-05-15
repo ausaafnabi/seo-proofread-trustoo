@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, TypedDict, Annotated, Literal
+from langgraph.graph import MessagesState
 
 class ChecklistItem(BaseModel):
     category: str = Field(description="Category of the checklist item")
@@ -12,7 +13,7 @@ class Recommendation(BaseModel):
     description: str = Field(description="Detailed description of how to implement the recommendation")
     priority: int = Field(description="Priority level from 1 (highest) to 5 (lowest)")
 
-class GraphState(TypedDict):
+class GraphState(MessagesState): #TypedDict):
     content: str  
     content_type: str 
     keywords: List[Dict]  
@@ -22,4 +23,6 @@ class GraphState(TypedDict):
     checklist_evaluation: List[ChecklistItem] 
     recommendations: List[Recommendation] 
     overall_score: float  # Overall score
+    messages: List[MessagesState]
+    tool_calls_result: Any
     pass_fail: Literal["PASS", "FAIL"]  
