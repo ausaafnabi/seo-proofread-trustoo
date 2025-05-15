@@ -3,7 +3,7 @@ from langgraph.prebuilt import tools_condition, ToolNode
 
 from core.models import GraphState
 from core.llmrouter import tools_all
-from agents.agents import keyword_analyzer, structure_analyzer,checklist_evaluator,recommendations_generator
+from agents.agents import keyword_analyzer, structure_analyzer,checklist_evaluator,recommendations_generator,tool_call_node
 
 def create_workflow():
     """
@@ -16,21 +16,17 @@ def create_workflow():
     workflow.add_node("keyword_analyzer", keyword_analyzer)
     workflow.add_node("structure_analyzer", structure_analyzer)
     workflow.add_node("checklist_evaluator", checklist_evaluator)
-    # workflow.add_node("tools", ToolNode(tools_all))
+    workflow.add_node("tool_call_node", tool_call_node)
     workflow.add_node("recommendations_generator", recommendations_generator)
     
     workflow.add_edge("keyword_analyzer", "structure_analyzer")
     workflow.add_edge("structure_analyzer", "checklist_evaluator")
-    # workflow.add_conditional_edges(
-    #     "checklist_evaluator",
-    #     tools_condition,
-    #     {
-    #         "tools": "tools",
-    #         "__end__": "recommendations_generator"
-    #     }
-    # )
-    # workflow.add_edge("tools", "checklist_evaluator")
-    workflow.add_edge("checklist_evaluator", "recommendations_generator")
+    workflow.add_conditional_edges("checklist_evaluator", lambda state: "tool_calls_result" in state and state["tool_calls_result"] is not None, {
+        True: "tool_call_node",
+        False: "recommendations_generator"
+    })
+    workflow.add_edge("tool_call_node", "checklist_evaluator")
+    # workflow.add_edge("checklist_evaluator", "recommendations_generator")
     workflow.add_edge("recommendations_generator", END)
     
     # entry point -> analyze keywords

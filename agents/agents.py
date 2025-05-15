@@ -3,6 +3,7 @@ import pandas as pd
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 # from langchain_openrouter
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_community.agent_toolkits.load_tools import load_tools
@@ -109,27 +110,42 @@ def checklist_evaluator(state: GraphState) -> GraphState:
     llm_with_tools=llm
     # llm_type='openai'
     # llm = ChatOpenAI(model="gpt-4", temperature=0)
-    # llm_with_tools = llm.bind_tools(tools_all)
+    llm_with_tools = llm.bind_tools(tools_all)
     
     # Formatting checklist for readability
-    checklist_text = "\n".join([f"- Category: {item['Category']}, Item: {item['Checklist Item']}" for item in state['checklist']])
-    data=prompts.checklist_data
+    if not state.get("messages"):
+        checklist_text = "\n".join([
+            f"- Category: {item['Category']}, Item: {item['Checklist Item']}"
+            for item in state['checklist']
+        ])
+        # checklist_text = "\n".join([f"- Category: {item['Category']}, Item: {item['Checklist Item']}" for item in state['checklist']])
+        data=prompts.checklist_data
     
-    prompt = ChatPromptTemplate.from_template(
-        prompts.checklist_prompt
-    )
+        prompt = ChatPromptTemplate.from_template(
+            prompts.checklist_prompt
+        )
     
-    formatted_prompt = prompt.format_messages(
-        content_type=state['content_type'],
-        content=state['content'],  # Truncate content to avoid token limits
-        keyword_analysis=json.dumps(state['keyword_analysis']),
-        structure_analysis=json.dumps(state['structure_analysis']),
-        checklist=checklist_text,
-        data_output=data
-    )
-    
+        formatted_prompt = prompt.format_messages(
+            content_type=state['content_type'],
+            content=state['content'],  # Truncate content to avoid token limits
+            keyword_analysis=json.dumps(state['keyword_analysis']),
+            structure_analysis=json.dumps(state['structure_analysis']),
+            checklist=checklist_text,
+            data_output=data,
+            # message= state['messages']
+        )
+    else:
+        formatted_prompt = state["messages"]
+    # state["messages"] = formatted_prompt
+
     response = llm_with_tools.invoke(formatted_prompt)
-    
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        return {
+            **state,
+            "messages": formatted_prompt + [response],  # Append tool_call message
+            "tool_calls_result": response.tool_calls,
+        }
+    print(response)
     try:
         if llm_type=='openai':
             checklist_items = json.loads(response.content)
@@ -139,10 +155,47 @@ def checklist_evaluator(state: GraphState) -> GraphState:
             validated_items = [ChecklistItem(**item) for item in checklist_items['evaluations']]
 
         
-        return {**state, "checklist_evaluation": validated_items}
+        return {**state, "checklist_evaluation": validated_items,
+            "messages": formatted_prompt + [response],}
     except Exception as e:
         logging.error(f"Error parsing checklist evaluation: {e}")
-        return {**state, "checklist_evaluation": []}
+        return {**state, "checklist_evaluation": [],"messages": formatted_prompt + [response],}
+    
+def tool_call_node(state: GraphState) -> GraphState:
+
+    tools = load_tools(["serpapi"])
+    serpapi_tool = tools[0]
+    tools_dict = {t.name: t for t in [serp_length_tool, serpapi_tool]}
+
+    results = []
+    for call in state.get("tool_calls_result", []):
+        tool_name = call['name']
+        args = call['args']
+        tool_fn = tools_dict.get(tool_name)
+        if not tool_fn:
+            continue
+        result = tool_fn.invoke(args)
+        results.append({
+            "tool_call_id": call['id'],
+            "output": result
+        })
+
+    tool_messages = [
+        {
+            "tool_call_id": r["tool_call_id"],
+            "name": call["name"],
+            "content": json.dumps(r["output"]),
+            "role": "tool"
+        }
+        for r, call in zip(results, state.get("tool_calls_result", []))
+    ]
+
+    return {
+        **state,
+        "messages": state["messages"] + tool_messages,
+        "tool_calls_result": None
+    }
+
 
 def recommendations_generator(state: GraphState) -> GraphState:
     """Generate recommendations based on the evaluations.
