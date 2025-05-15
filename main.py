@@ -1,5 +1,5 @@
 import streamlit as st
-from core.ui import display_header, display_file_uploads, file_processing, run_analysis, display_results, export_results
+from core.ui import display_header, display_file_uploads, file_processing, run_analysis, display_results
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,7 +27,6 @@ def main():
                 final_state = run_analysis(initial_state, log_placeholder)
                 display_results(final_state)
                 
-                export_results(final_state)
             else:
                 st.error("Failed to process the files. Please check your uploads.")
 
