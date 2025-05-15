@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional,Sequence
+from typing import Any, List, Mapping, Optional,Sequence, Dict
 import requests
 import json
 import os
@@ -28,6 +28,7 @@ class MultiSelectCustomLLM(LLM):
     '''
     n: int # echo from previous convo
     model:str = 'gemini2_0'
+    tools: Optional[Dict[str, BaseTool]] = None
     # model_uri:str= self.getLLM()
     @property
     def _llm_type(self) -> str:
@@ -41,7 +42,79 @@ class MultiSelectCustomLLM(LLM):
                        'llama4':'meta-llama/llama-4-scout:free'}
         return LLMmap.get(self.model,'google/gemini-2.0-flash-exp:free')
     
+    def bind_tools(self, tools: List[BaseTool]):
+        if self.tools is None:
+            self.tools = {}
+        for tool in tools:
+            self.tools[tool.name] = tool
+        return self
 
+    # def _call(
+    #     self,
+    #     prompt: str,
+    #     stop: Optional[List[str]] = None,
+    #     run_manager: Optional[CallbackManagerForLLMRun] = None,
+    #     **kwargs: Any,
+    # ) -> str:
+    #     OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+    #     YOUR_SITE_URL = 'https://trustoo.nl'
+    #     headers = {
+    #         'Authorization': f'Bearer {OPENROUTER_API_KEY}',
+    #         'HTTP-Referer': YOUR_SITE_URL,
+    #         'Content-Type': 'application/json'
+    #     }
+
+    #     messages = [{'role': 'user', 'content': prompt}]
+    #     data = {
+    #         'model': self.getLLM(),
+    #         'messages': messages,
+    #         'temperature': 0.0,
+    #         'response_format': 'json',
+    #     }
+
+    #     if self.tools:
+    #         # according to openrouter tool-calling documentation.
+    #         data['tools'] = [
+    #             {
+    #                 "type": "function",
+    #                 "function": {
+    #                     "name": tool.name,
+    #                     "description": tool.description or "",
+    #                     "parameters": tool.args_schema.model_json_schema() if tool.args_schema else {}
+    #                 }
+    #             }
+    #             for tool in self.tools.values()
+    #         ]
+    #         data['tool_choice'] = 'auto'
+
+    #     response = requests.post(
+    #         'https://openrouter.ai/api/v1/chat/completions',
+    #         headers=headers,
+    #         data=json.dumps(data)
+    #     )
+
+    #     result = response.json()
+    #     logging.debug(result)
+
+    #     if 'error' in result:
+    #         raise Exception(f"LLM Error {result['error']['code']}: {result['error']['message']}")
+
+    #     message = result['choices'][0]['message']
+
+    #     if 'tool_calls' in message:
+    #         for tool_call in message['tool_calls']:
+    #             tool_name = tool_call['function']['name']
+    #             arguments = json.loads(tool_call['function']['arguments'])
+    #             if tool_name in self.tools:
+    #                 tool = self.tools[tool_name]
+    #                 result = tool.run(**arguments)
+    #                 # Optionally, you can send the result back to the model for further processing
+    #                 print(result)
+    #                 return str(result)
+    #             else:
+    #                 raise ValueError(f"Tool '{tool_name}' not found.")
+    #     else:
+    #         return message['content']
 
     def _call(
         self,
