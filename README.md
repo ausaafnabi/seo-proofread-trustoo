@@ -19,7 +19,7 @@ SERPAPI_API_KEY=<serp-api-key>
 
 Assuming that the deployment infrastructre to be on Linux.
 ```bash
-./run_seo_proofread.sh
+source ./run_seo_proofread.sh
 ```
 or 
 ```bash
@@ -40,10 +40,10 @@ MODEL='llama4' or 'gpt-4' (there are other non tested models too)
 - [x] build a minimal Serp tool for meta related tasks 
 - [x] Test the system
 - [x] Build a minimal UI interface for it.
-- [ ] Resolve any issues or add Features
+- [x] Resolve any issues or add Features
  
 
 ## Known limitations
 - Tool are not yet integrated to the system. (due to implementation of custom llm)
-- Tested for GPT-4 and llama 4 only.
-- Download functionality have some issues.
+- Tested for GPT-4 and llama 4 only (v2 works only for GPT-4 due to tool limitation on openrouter).
+- Download functionality have some issues (removed).
